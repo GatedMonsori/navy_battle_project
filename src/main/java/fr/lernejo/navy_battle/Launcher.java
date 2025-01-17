@@ -4,6 +4,10 @@ import com.sun.net.httpserver.HttpServer;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 
@@ -61,9 +65,41 @@ public class Launcher {
             }
         });
 
-
-
         server.start();
         System.out.println("Server started on port " + port);
+
+        if (args.length > 1) {
+            String targetUrl = args[1];
+            sendPostRequestToServer(port, targetUrl);
+        }
     }
+
+    private static void sendPostRequestToServer(int myPort, String targetUrl) {
+        try {
+            // Build the JSON body
+            String body = String.format(
+                "{\"id\":\"%s\",\"url\":\"http://localhost:%d\",\"message\":\"Hello from client!\"}",
+                UUID.randomUUID().toString(),
+                myPort
+            );
+
+            // Create the HTTP client
+            HttpClient client = HttpClient.newHttpClient();
+
+            // Create the POST request
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(targetUrl + "/api/game/start"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+            // Send the request and handle the response
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("Response status code: " + response.statusCode());
+            System.out.println("Response body: " + response.body());
+        } catch (Exception e) {
+            System.err.println("Error sending POST request: " + e.getMessage());
+        }
+    }
+
 }
