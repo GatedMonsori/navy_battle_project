@@ -65,6 +65,45 @@ public class Launcher {
             }
         });
 
+        server.createContext("/api/game/fire", exchange -> {
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(404, 0);
+                exchange.close();
+                return;
+            }
+
+            String query = exchange.getRequestURI().getQuery(); // e.g., "cell=A1"
+            if (query == null || !query.startsWith("cell=")) {
+                exchange.sendResponseHeaders(400, 0);
+                exchange.close();
+                return;
+            }
+
+            String cell = query.substring(5);
+            if (!cell.matches("^[A-J](10|[1-9])$")) {
+                exchange.sendResponseHeaders(400, 0);
+                exchange.close();
+                return;
+            }
+
+            String consequence = "miss";
+            boolean shipLeft = true;
+
+            // Build the JSON response
+            String responseBody = String.format(
+                "{\"consequence\":\"%s\",\"shipLeft\":%b}",
+                consequence,
+                shipLeft
+            );
+
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, responseBody.length());
+            try (var os = exchange.getResponseBody()) {
+                os.write(responseBody.getBytes());
+            }
+        });
+
+
         server.start();
         System.out.println("Server started on port " + port);
 
@@ -101,5 +140,4 @@ public class Launcher {
             System.err.println("Error sending POST request: " + e.getMessage());
         }
     }
-
 }
